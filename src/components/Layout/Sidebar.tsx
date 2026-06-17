@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Users, HardHat } from 'lucide-react';
+import { Home, Users, UserRound, HardHat } from 'lucide-react';
 
 const Sidebar = () => {
   const navItems = [
     { to: '/', label: '工地看板', icon: Home },
     { to: '/workers', label: '工人统计', icon: Users },
+    { to: '/workers/manage', label: '工人档案', icon: UserRound },
   ];
 
   return (

@@ -13,12 +13,14 @@ import {
   CheckCircle2,
   Clock,
   Building2,
+  BarChart3,
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { formatCurrency, formatDate, getDaysDiff } from '../utils/format';
 import ProgressBar from '../components/ProgressBar';
 import StageTimeline from '../components/StageTimeline';
 import MaterialTable from '../components/MaterialTable';
+import ActivityLogList from '../components/ActivityLogList';
 import Modal from '../components/Modal';
 
 const ProjectDetail = () => {
@@ -28,6 +30,7 @@ const ProjectDetail = () => {
     projects,
     getProjectStages,
     getProjectTotalCost,
+    getProjectCategoryCosts,
     getStageProgress,
     deleteProject,
     completeProject,
@@ -57,10 +60,12 @@ const ProjectDetail = () => {
 
   const stages = getProjectStages(project.id);
   const totalCost = getProjectTotalCost(project.id);
+  const categoryCosts = getProjectCategoryCosts(project.id);
   const progress = getStageProgress(project.id);
   const isOverBudget = totalCost > project.budget;
   const budgetDiff = totalCost - project.budget;
   const budgetUsage = Math.min((totalCost / project.budget) * 100, 100);
+  const overBudgetCategories = categoryCosts.filter((c) => c.budget && c.total > c.budget);
   const allStagesCompleted = stages.every((s) => s.status === 'completed');
   const hasAnyStageStarted = stages.some((s) => s.status !== 'pending');
 
@@ -250,6 +255,57 @@ const ProjectDetail = () => {
                   </div>
                 )}
               </div>
+
+              {categoryCosts.length > 0 && (
+                <div className="mt-5 pt-4 border-t border-slate-200/70">
+                  <div className="flex items-center gap-2 mb-3">
+                    <BarChart3 className="w-4 h-4 text-slate-500" />
+                    <span className="text-sm font-semibold text-slate-600">分类预算执行</span>
+                  </div>
+                  <div className="space-y-2.5">
+                    {categoryCosts.slice(0, 6).map((c) => {
+                      const over = c.budget && c.total > c.budget;
+                      const percent = c.budget ? Math.min((c.total / c.budget) * 100, 100) : 0;
+                      return (
+                        <div key={c.category}>
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="font-medium text-slate-600">{c.category}</span>
+                            <span className={`tabular-nums ${over ? 'text-red-600 font-semibold' : 'text-slate-500'}`}>
+                              {formatCurrency(c.total)}
+                              {c.budget && ` / ${formatCurrency(c.budget)}`}
+                              {over && ' ⚠'}
+                            </span>
+                          </div>
+                          {c.budget && (
+                            <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  over ? 'bg-red-500' : percent >= 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                                }`}
+                                style={{ width: `${percent}%` }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {overBudgetCategories.length > 0 && (
+                <div className="mt-4 p-3 rounded-xl bg-orange-50 border border-orange-200">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-orange-700">
+                      <span className="font-semibold">
+                        {overBudgetCategories.map((c) => c.category).join('、')}
+                      </span>{' '}
+                      已超出分类预算
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -274,8 +330,9 @@ const ProjectDetail = () => {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        <div className="xl:col-span-2">
+        <div className="xl:col-span-2 space-y-6">
           <StageTimeline projectId={project.id} />
+          <ActivityLogList projectId={project.id} />
         </div>
         <div className="xl:col-span-3 space-y-6">
           {workerRecords.length > 0 && (

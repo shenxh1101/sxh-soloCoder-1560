@@ -6,7 +6,7 @@ import ProgressBar from '../components/ProgressBar';
 
 const Settlement = () => {
   const { id } = useParams<{ id: string }>();
-  const { projects, getProjectStages, getProjectMaterials, getProjectTotalCost, getStageProgress } = useStore();
+  const { projects, getProjectStages, getProjectMaterials, getProjectTotalCost, getProjectCategoryCosts, getStageProgress } = useStore();
 
   const project = projects.find((p) => p.id === id);
 
@@ -28,6 +28,7 @@ const Settlement = () => {
   const stages = getProjectStages(project.id);
   const materials = getProjectMaterials(project.id);
   const totalCost = getProjectTotalCost(project.id);
+  const categoryCosts = getProjectCategoryCosts(project.id);
   const progress = getStageProgress(project.id);
   const isOverBudget = totalCost > project.budget;
   const budgetDiff = Math.abs(totalCost - project.budget);
@@ -244,6 +245,51 @@ const Settlement = () => {
               </div>
             )}
           </section>
+
+          {categoryCosts.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">二点五、各类材料花费汇总</h2>
+                <span className="text-sm text-slate-500">
+                  按类别统计采购支出
+                </span>
+              </div>
+              <div className="overflow-hidden rounded-xl border border-slate-200">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50">
+                      <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">序号</th>
+                      <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">材料类别</th>
+                      <th className="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">预算</th>
+                      <th className="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">实际花费</th>
+                      <th className="px-5 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">差额</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {categoryCosts.map((c, idx) => {
+                      const diff = c.budget ? c.total - c.budget : 0;
+                      const over = c.budget && c.total > c.budget;
+                      return (
+                        <tr key={c.category} className={over ? 'bg-red-50/50' : 'hover:bg-slate-50/50'}>
+                          <td className="px-5 py-3.5 text-sm font-medium text-slate-500 tabular-nums">{idx + 1}</td>
+                          <td className="px-5 py-3.5 text-sm font-semibold text-slate-800">{c.category}</td>
+                          <td className="px-5 py-3.5 text-sm text-slate-600 text-right tabular-nums">
+                            {c.budget ? formatCurrency(c.budget) : '-'}
+                          </td>
+                          <td className="px-5 py-3.5 text-sm font-semibold text-slate-800 text-right tabular-nums">{formatCurrency(c.total)}</td>
+                          <td className={`px-5 py-3.5 text-sm font-semibold text-right tabular-nums ${over ? 'text-red-600' : c.budget ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {c.budget
+                              ? `${over ? '-' : '+'}${formatCurrency(Math.abs(diff))}`
+                              : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
 
           <section className="p-8 rounded-2xl bg-gradient-to-br from-[#1e3a5f]/5 via-white to-amber-50/30 border-2 border-[#1e3a5f]/10">
             <h2 className="text-xl font-bold text-slate-800 mb-6">三、费用总结</h2>

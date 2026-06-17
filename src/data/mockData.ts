@@ -1,4 +1,13 @@
-import type { Project, Stage, Material, Worker, StageName } from '../types';
+import type {
+  Project,
+  Stage,
+  Material,
+  Worker,
+  StageName,
+  ActivityLog,
+  MaterialCategory,
+  CategoryBudget,
+} from '../types';
 import { generateId } from '../utils/id';
 
 const STAGE_NAMES: StageName[] = ['水电', '泥瓦', '木工', '油漆', '安装'];
@@ -13,18 +22,51 @@ export const createDefaultStages = (projectId: string): Stage[] => {
   }));
 };
 
+const materialMap: Record<string, MaterialCategory> = {
+  PPR水管: '水电材料',
+  电线: '水电材料',
+  水泥: '水泥',
+  黄沙: '水泥',
+  瓷砖: '瓷砖',
+  大芯板: '板材',
+  乳胶漆: '油漆',
+  开关插座: '五金',
+  实木地板: '门窗',
+  橱柜: '门窗',
+};
+
+export const getCategory = (name: string): MaterialCategory => {
+  if (materialMap[name]) return materialMap[name];
+  if (name.includes('管') || name.includes('线')) return '水电材料';
+  if (name.includes('板')) return '板材';
+  if (name.includes('漆')) return '油漆';
+  if (name.includes('砖') || name.includes('瓦')) return '瓷砖';
+  return '其他';
+};
+
 const project1Id = generateId();
 const project2Id = generateId();
 const project3Id = generateId();
 
 export const mockWorkers: Worker[] = [
-  { id: generateId(), name: '张师傅', phone: '13800138001', specialty: '水电工' },
-  { id: generateId(), name: '李师傅', phone: '13800138002', specialty: '泥瓦工' },
-  { id: generateId(), name: '王师傅', phone: '13800138003', specialty: '木工' },
-  { id: generateId(), name: '赵师傅', phone: '13800138004', specialty: '油漆工' },
-  { id: generateId(), name: '刘师傅', phone: '13800138005', specialty: '安装工' },
-  { id: generateId(), name: '陈师傅', phone: '13800138006', specialty: '水电工' },
-  { id: generateId(), name: '孙师傅', phone: '13800138007', specialty: '木工' },
+  { id: generateId(), name: '张师傅', phone: '13800138001', specialty: '水电', createdAt: '2026-04-01T09:00:00Z' },
+  { id: generateId(), name: '李师傅', phone: '13800138002', specialty: '泥瓦', createdAt: '2026-04-02T09:00:00Z' },
+  { id: generateId(), name: '王师傅', phone: '13800138003', specialty: '木工', createdAt: '2026-04-03T09:00:00Z' },
+  { id: generateId(), name: '赵师傅', phone: '13800138004', specialty: '油漆', createdAt: '2026-04-04T09:00:00Z' },
+  { id: generateId(), name: '刘师傅', phone: '13800138005', specialty: '安装', createdAt: '2026-04-05T09:00:00Z' },
+  { id: generateId(), name: '陈师傅', phone: '13800138006', specialty: '水电', createdAt: '2026-04-06T09:00:00Z' },
+  { id: generateId(), name: '孙师傅', phone: '13800138007', specialty: '木工', createdAt: '2026-04-07T09:00:00Z' },
+];
+
+const p1Budgets: CategoryBudget[] = [
+  { category: '水电材料', budget: 25000 },
+  { category: '水泥', budget: 15000 },
+  { category: '瓷砖', budget: 35000 },
+  { category: '板材', budget: 25000 },
+  { category: '油漆', budget: 15000 },
+  { category: '五金', budget: 10000 },
+  { category: '门窗', budget: 20000 },
+  { category: '洁具', budget: 5000 },
 ];
 
 export const mockProjects: Project[] = [
@@ -36,6 +78,7 @@ export const mockProjects: Project[] = [
     startDate: '2026-05-15',
     expectedEndDate: '2026-08-15',
     budget: 150000,
+    categoryBudgets: p1Budgets,
     status: 'ongoing',
     createdAt: '2026-05-10T10:00:00Z',
   },
@@ -47,6 +90,15 @@ export const mockProjects: Project[] = [
     startDate: '2026-06-01',
     expectedEndDate: '2026-09-01',
     budget: 200000,
+    categoryBudgets: [
+      { category: '水电材料', budget: 30000 },
+      { category: '水泥', budget: 20000 },
+      { category: '瓷砖', budget: 50000 },
+      { category: '板材', budget: 30000 },
+      { category: '油漆', budget: 20000 },
+      { category: '五金', budget: 15000 },
+      { category: '门窗', budget: 25000 },
+    ],
     status: 'ongoing',
     createdAt: '2026-05-25T14:30:00Z',
   },
@@ -178,6 +230,7 @@ export const mockMaterials: Material[] = [
     id: generateId(),
     projectId: project1Id,
     name: 'PPR水管',
+    category: '水电材料',
     spec: '25mm',
     quantity: 50,
     unit: '米',
@@ -190,6 +243,7 @@ export const mockMaterials: Material[] = [
     id: generateId(),
     projectId: project1Id,
     name: '电线',
+    category: '水电材料',
     spec: '2.5平方',
     quantity: 3,
     unit: '卷',
@@ -201,6 +255,7 @@ export const mockMaterials: Material[] = [
     id: generateId(),
     projectId: project1Id,
     name: '水泥',
+    category: '水泥',
     spec: '海螺P.O42.5',
     quantity: 60,
     unit: '袋',
@@ -212,6 +267,7 @@ export const mockMaterials: Material[] = [
     id: generateId(),
     projectId: project1Id,
     name: '黄沙',
+    category: '水泥',
     spec: '中砂',
     quantity: 8,
     unit: '方',
@@ -223,6 +279,7 @@ export const mockMaterials: Material[] = [
     id: generateId(),
     projectId: project1Id,
     name: '瓷砖',
+    category: '瓷砖',
     spec: '800x800',
     quantity: 120,
     unit: '片',
@@ -235,6 +292,7 @@ export const mockMaterials: Material[] = [
     id: generateId(),
     projectId: project1Id,
     name: '大芯板',
+    category: '板材',
     spec: '18mm E0级',
     quantity: 30,
     unit: '张',
@@ -246,6 +304,7 @@ export const mockMaterials: Material[] = [
     id: generateId(),
     projectId: project2Id,
     name: '电线',
+    category: '水电材料',
     spec: '4平方',
     quantity: 2,
     unit: '卷',
@@ -257,6 +316,7 @@ export const mockMaterials: Material[] = [
     id: generateId(),
     projectId: project2Id,
     name: '开关插座',
+    category: '五金',
     spec: '西门子远景系列',
     quantity: 45,
     unit: '个',
@@ -268,6 +328,7 @@ export const mockMaterials: Material[] = [
     id: generateId(),
     projectId: project2Id,
     name: '水泥',
+    category: '水泥',
     spec: '海螺P.O42.5',
     quantity: 80,
     unit: '袋',
@@ -292,6 +353,7 @@ export const mockMaterials: Material[] = [
       id: generateId(),
       projectId: project3Id,
       name: m.name,
+      category: getCategory(m.name),
       spec: m.spec,
       quantity: m.qty,
       unit: m.unit,
@@ -300,4 +362,70 @@ export const mockMaterials: Material[] = [
       purchaseDate: m.date,
     }));
   })(),
+];
+
+export const mockActivityLogs: ActivityLog[] = [
+  {
+    id: generateId(),
+    projectId: project1Id,
+    type: 'project_create',
+    content: '创建了新工地',
+    createdAt: '2026-05-10T10:00:00Z',
+  },
+  {
+    id: generateId(),
+    projectId: project1Id,
+    type: 'stage_start',
+    content: '【水电】阶段开始，负责人：张师傅',
+    createdAt: '2026-05-16T08:00:00Z',
+  },
+  {
+    id: generateId(),
+    projectId: project1Id,
+    type: 'material_add',
+    content: '添加材料：PPR水管 × 50米，金额 ¥600',
+    createdAt: '2026-05-16T10:00:00Z',
+  },
+  {
+    id: generateId(),
+    projectId: project1Id,
+    type: 'material_add',
+    content: '添加材料：电线 × 3卷，金额 ¥840',
+    createdAt: '2026-05-17T09:00:00Z',
+  },
+  {
+    id: generateId(),
+    projectId: project1Id,
+    type: 'stage_complete',
+    content: '【水电】阶段完成',
+    createdAt: '2026-05-28T18:00:00Z',
+  },
+  {
+    id: generateId(),
+    projectId: project1Id,
+    type: 'stage_start',
+    content: '【泥瓦】阶段开始，负责人：李师傅',
+    createdAt: '2026-05-30T08:00:00Z',
+  },
+  {
+    id: generateId(),
+    projectId: project1Id,
+    type: 'stage_complete',
+    content: '【泥瓦】阶段完成',
+    createdAt: '2026-06-12T18:00:00Z',
+  },
+  {
+    id: generateId(),
+    projectId: project1Id,
+    type: 'stage_start',
+    content: '【木工】阶段开始，负责人：王师傅',
+    createdAt: '2026-06-14T08:00:00Z',
+  },
+  {
+    id: generateId(),
+    projectId: project1Id,
+    type: 'material_add',
+    content: '添加材料：大芯板 × 30张，金额 ¥4950',
+    createdAt: '2026-06-14T10:00:00Z',
+  },
 ];

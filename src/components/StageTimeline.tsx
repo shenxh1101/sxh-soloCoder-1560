@@ -40,13 +40,14 @@ const statusStyles = {
 };
 
 const StageTimeline = ({ projectId }: StageTimelineProps) => {
-  const { stages, workers, getProjectStages, startStage, completeStage, assignWorkerToStage } = useStore();
+  const { stages, workers, getProjectStages, startStage, completeStage, assignWorkerToStage, getOrCreateWorkerByName } = useStore();
   const projectStages = getProjectStages(projectId);
 
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [showWorkerModal, setShowWorkerModal] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<string>('');
   const [newWorkerName, setNewWorkerName] = useState('');
+  const [newWorkerSpecialty, setNewWorkerSpecialty] = useState('');
   const [addWorkerMode, setAddWorkerMode] = useState(false);
 
   const handleStartStage = (stage: Stage) => {
@@ -61,7 +62,9 @@ const StageTimeline = ({ projectId }: StageTimelineProps) => {
   const handleConfirmStart = () => {
     if (!selectedStage) return;
     if (addWorkerMode && newWorkerName.trim()) {
-      startStage(selectedStage.id, undefined, newWorkerName.trim());
+      const savedWorker = getOrCreateWorkerByName(newWorkerName.trim(), newWorkerSpecialty.trim() || selectedStage.name);
+      assignWorkerToStage(selectedStage.id, savedWorker.id, savedWorker.name);
+      startStage(selectedStage.id, savedWorker.id, savedWorker.name);
     } else if (selectedWorker) {
       const worker = workers.find((w) => w.id === selectedWorker);
       if (worker) {
@@ -75,6 +78,7 @@ const StageTimeline = ({ projectId }: StageTimelineProps) => {
     setSelectedStage(null);
     setSelectedWorker('');
     setNewWorkerName('');
+    setNewWorkerSpecialty('');
     setAddWorkerMode(false);
   };
 
@@ -201,6 +205,7 @@ const StageTimeline = ({ projectId }: StageTimelineProps) => {
           setSelectedStage(null);
           setSelectedWorker('');
           setNewWorkerName('');
+          setNewWorkerSpecialty('');
           setAddWorkerMode(false);
         }}
         title={`分配工人 - ${selectedStage?.name}阶段`}
@@ -238,7 +243,9 @@ const StageTimeline = ({ projectId }: StageTimelineProps) => {
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">工人姓名</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  工人姓名 <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={newWorkerName}
@@ -247,10 +254,22 @@ const StageTimeline = ({ projectId }: StageTimelineProps) => {
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#1e3a5f] focus:ring-4 focus:ring-[#1e3a5f]/10 outline-none transition-all"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">擅长工种</label>
+                <input
+                  type="text"
+                  value={newWorkerSpecialty}
+                  onChange={(e) => setNewWorkerSpecialty(e.target.value)}
+                  placeholder={`默认：${selectedStage?.name || ''}`}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#1e3a5f] focus:ring-4 focus:ring-[#1e3a5f]/10 outline-none transition-all"
+                />
+                <p className="text-xs text-slate-400 mt-1">工人将保存到档案，后续可直接选择</p>
+              </div>
               <button
                 onClick={() => {
                   setAddWorkerMode(false);
                   setNewWorkerName('');
+                  setNewWorkerSpecialty('');
                 }}
                 className="text-sm text-slate-500 hover:underline"
               >
@@ -266,6 +285,7 @@ const StageTimeline = ({ projectId }: StageTimelineProps) => {
                 setSelectedStage(null);
                 setSelectedWorker('');
                 setNewWorkerName('');
+                setNewWorkerSpecialty('');
                 setAddWorkerMode(false);
               }}
               className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors"

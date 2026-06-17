@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, Filter, Construction, Hammer, CheckCircle2, Wallet, X } from 'lucide-react';
+import { Plus, Search, Filter, Construction, Hammer, CheckCircle2, Wallet, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { formatCurrency, getTodayStr } from '../utils/format';
 import StatCard from '../components/StatCard';
 import ProjectCard from '../components/ProjectCard';
 import Modal from '../components/Modal';
-import type { ProjectStatus } from '../types';
+import type { ProjectStatus, CategoryBudget, MaterialCategory } from '../types';
+import { MATERIAL_CATEGORIES } from '../types';
 
 const filterOptions: { value: 'all' | ProjectStatus; label: string }[] = [
   { value: 'all', label: '全部工地' },
@@ -20,6 +21,7 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ProjectStatus>('all');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCategoryBudgets, setShowCategoryBudgets] = useState(false);
   const [form, setForm] = useState({
     customerName: '',
     phone: '',
@@ -28,6 +30,7 @@ const Dashboard = () => {
     expectedEndDate: '',
     budget: '',
   });
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
 
   const stats = useMemo(() => {
     const pending = projects.filter((p) => p.status === 'pending').length;
@@ -56,19 +59,7 @@ const Dashboard = () => {
     return result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [projects, statusFilter, searchTerm]);
 
-  const handleSubmit = () => {
-    if (!form.customerName.trim() || !form.address.trim() || !form.startDate || !form.expectedEndDate || !form.budget) return;
-
-    addProject({
-      customerName: form.customerName.trim(),
-      phone: form.phone.trim(),
-      address: form.address.trim(),
-      startDate: form.startDate,
-      expectedEndDate: form.expectedEndDate,
-      budget: parseFloat(form.budget),
-    });
-
-    setShowAddModal(false);
+  const resetForm = () => {
     setForm({
       customerName: '',
       phone: '',
@@ -77,6 +68,33 @@ const Dashboard = () => {
       expectedEndDate: '',
       budget: '',
     });
+    setCategoryBudgets({});
+    setShowCategoryBudgets(false);
+  };
+
+  const handleSubmit = () => {
+    if (!form.customerName.trim() || !form.address.trim() || !form.startDate || !form.expectedEndDate || !form.budget) return;
+
+    const budgets: CategoryBudget[] = [];
+    Object.entries(categoryBudgets).forEach(([cat, val]) => {
+      const v = parseFloat(val);
+      if (!isNaN(v) && v > 0) {
+        budgets.push({ category: cat as MaterialCategory, budget: v });
+      }
+    });
+
+    addProject({
+      customerName: form.customerName.trim(),
+      phone: form.phone.trim(),
+      address: form.address.trim(),
+      startDate: form.startDate,
+      expectedEndDate: form.expectedEndDate,
+      budget: parseFloat(form.budget),
+      categoryBudgets: budgets.length > 0 ? budgets : undefined,
+    });
+
+    setShowAddModal(false);
+    resetForm();
   };
 
   return (
@@ -284,9 +302,43 @@ const Dashboard = () => {
             />
           </div>
 
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setShowCategoryBudgets(!showCategoryBudgets)}
+              className="flex items-center gap-2 text-sm font-medium text-[#1e3a5f] hover:underline"
+            >
+              {showCategoryBudgets ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              设置分类预算（可选）
+            </button>
+            {showCategoryBudgets && (
+              <div className="mt-3 grid grid-cols-2 gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                {MATERIAL_CATEGORIES.map((cat) => (
+                  <div key={cat}>
+                    <label className="block text-xs text-slate-600 mb-1">{cat}</label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={categoryBudgets[cat] || ''}
+                      onChange={(e) =>
+                        setCategoryBudgets({ ...categoryBudgets, [cat]: e.target.value })
+                      }
+                      placeholder="0"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/10 outline-none transition-all"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-3 pt-2">
             <button
-              onClick={() => setShowAddModal(false)}
+              onClick={() => {
+                setShowAddModal(false);
+                resetForm();
+              }}
               className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors"
             >
               取消

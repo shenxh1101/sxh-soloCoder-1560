@@ -16,13 +16,15 @@ const statusConfig = {
 };
 
 const ProjectCard = ({ project }: ProjectCardProps) => {
-  const { getProjectTotalCost, getStageProgress, getCurrentStage } = useStore();
+  const { getProjectTotalCost, getStageProgress, getCurrentStage, getProjectCategoryCosts } = useStore();
 
   const totalCost = getProjectTotalCost(project.id);
   const progress = getStageProgress(project.id);
   const currentStage = getCurrentStage(project.id);
   const isOverBudget = totalCost > project.budget;
   const budgetUsage = (totalCost / project.budget) * 100;
+  const categoryCosts = getProjectCategoryCosts(project.id);
+  const overCategories = categoryCosts.filter((c) => c.budget && c.total > c.budget);
   const status = statusConfig[project.status];
 
   return (
@@ -49,6 +51,12 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
             <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600">
               <AlertTriangle className="w-4 h-4" />
               <span className="text-xs font-semibold">超支</span>
+            </div>
+          )}
+          {!isOverBudget && overCategories.length > 0 && (
+            <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-orange-50 text-orange-600" title={overCategories.map((c) => c.category).join('、')}>
+              <AlertTriangle className="w-4 h-4" />
+              <span className="text-xs font-semibold">{overCategories.length}类超支</span>
             </div>
           )}
         </div>

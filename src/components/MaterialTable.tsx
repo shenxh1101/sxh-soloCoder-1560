@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, Package, Search, X } from 'lucide-react';
-import type { Material } from '../types';
+import type { Material, MaterialCategory } from '../types';
+import { MATERIAL_CATEGORIES } from '../types';
 import { useStore } from '../store/useStore';
 import { formatCurrency, formatDate, getTodayStr } from '../utils/format';
 import Modal from './Modal';
@@ -11,9 +12,23 @@ interface MaterialTableProps {
 
 const commonUnits = ['袋', '卷', '米', '平方', '个', '张', '方', '桶', '套', '件'];
 
+const categoryColor: Record<MaterialCategory, string> = {
+  水泥: 'bg-slate-100 text-slate-700',
+  瓷砖: 'bg-orange-100 text-orange-700',
+  油漆: 'bg-pink-100 text-pink-700',
+  五金: 'bg-yellow-100 text-yellow-700',
+  板材: 'bg-amber-100 text-amber-700',
+  水电材料: 'bg-blue-100 text-blue-700',
+  门窗: 'bg-purple-100 text-purple-700',
+  洁具: 'bg-cyan-100 text-cyan-700',
+  灯具: 'bg-indigo-100 text-indigo-700',
+  其他: 'bg-slate-100 text-slate-600',
+};
+
 const MaterialTable = ({ projectId }: MaterialTableProps) => {
-  const { materials, addMaterial, updateMaterial, deleteMaterial, getProjectMaterials, getProjectTotalCost } = useStore();
+  const { materials, addMaterial, updateMaterial, deleteMaterial, getProjectMaterials, getProjectTotalCost, getProjectCategoryCosts } = useStore();
   const projectMaterials = getProjectMaterials(projectId);
+  const categoryCosts = getProjectCategoryCosts(projectId);
   const totalCost = getProjectTotalCost(projectId);
 
   const [showModal, setShowModal] = useState(false);
@@ -22,6 +37,7 @@ const MaterialTable = ({ projectId }: MaterialTableProps) => {
 
   const [form, setForm] = useState({
     name: '',
+    category: '其他' as MaterialCategory,
     spec: '',
     quantity: '',
     unit: '袋',
@@ -40,6 +56,7 @@ const MaterialTable = ({ projectId }: MaterialTableProps) => {
     setEditingMaterial(null);
     setForm({
       name: '',
+      category: '其他',
       spec: '',
       quantity: '',
       unit: '袋',
@@ -54,6 +71,7 @@ const MaterialTable = ({ projectId }: MaterialTableProps) => {
     setEditingMaterial(material);
     setForm({
       name: material.name,
+      category: material.category,
       spec: material.spec || '',
       quantity: material.quantity.toString(),
       unit: material.unit,
@@ -73,6 +91,7 @@ const MaterialTable = ({ projectId }: MaterialTableProps) => {
 
     const data = {
       name: form.name.trim(),
+      category: form.category,
       spec: form.spec.trim() || undefined,
       quantity,
       unit: form.unit,
@@ -131,6 +150,36 @@ const MaterialTable = ({ projectId }: MaterialTableProps) => {
             </button>
           </div>
         </div>
+        {categoryCosts.length > 0 && (
+          <div className="mt-5 pt-5 border-t border-slate-100">
+            <p className="text-xs font-semibold text-slate-500 mb-3">按类别汇总</p>
+            <div className="flex flex-wrap gap-2">
+              {categoryCosts.map((c) => {
+                const over = c.budget && c.total > c.budget;
+                return (
+                  <div
+                    key={c.category}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-sm ${
+                      over
+                        ? 'bg-red-50 border-red-200 text-red-700'
+                        : 'bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryColor[c.category] || 'bg-slate-200 text-slate-600'}`}>
+                      {c.category}
+                    </span>
+                    <span className="font-bold tabular-nums">{formatCurrency(c.total)}</span>
+                    {c.budget && (
+                      <span className={`text-xs ${over ? 'text-red-600' : 'text-slate-400'}`}>
+                        / {formatCurrency(c.budget)} {over ? '⚠️超支' : ''}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="overflow-x-auto">
@@ -138,12 +187,12 @@ const MaterialTable = ({ projectId }: MaterialTableProps) => {
           <thead>
             <tr className="bg-slate-50 text-left">
               <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">采购日期</th>
+              <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">类别</th>
               <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">材料名称</th>
               <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">规格</th>
               <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">数量</th>
               <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">单价</th>
               <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">总价</th>
-              <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">备注</th>
               <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">操作</th>
             </tr>
           </thead>
@@ -172,6 +221,11 @@ const MaterialTable = ({ projectId }: MaterialTableProps) => {
                 <tr key={material.id} className="hover:bg-slate-50/70 transition-colors">
                   <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{formatDate(material.purchaseDate)}</td>
                   <td className="px-6 py-4">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${categoryColor[material.category] || 'bg-slate-100 text-slate-600'}`}>
+                      {material.category}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
                     <span className="font-semibold text-slate-800">{material.name}</span>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-500">{material.spec || '-'}</td>
@@ -180,7 +234,6 @@ const MaterialTable = ({ projectId }: MaterialTableProps) => {
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600 text-right tabular-nums">{formatCurrency(material.unitPrice)}</td>
                   <td className="px-6 py-4 text-sm font-bold text-slate-900 text-right tabular-nums">{formatCurrency(material.totalPrice)}</td>
-                  <td className="px-6 py-4 text-sm text-slate-500 max-w-[200px] truncate">{material.remark || '-'}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-1">
                       <button
@@ -244,15 +297,29 @@ const MaterialTable = ({ projectId }: MaterialTableProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">规格型号</label>
-              <input
-                type="text"
-                value={form.spec}
-                onChange={(e) => setForm({ ...form, spec: e.target.value })}
-                placeholder="如：海螺P.O42.5、800x800等"
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                材料类别 <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value as MaterialCategory })}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#1e3a5f] focus:ring-4 focus:ring-[#1e3a5f]/10 outline-none transition-all"
-              />
+              >
+                {MATERIAL_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">规格型号</label>
+            <input
+              type="text"
+              value={form.spec}
+              onChange={(e) => setForm({ ...form, spec: e.target.value })}
+              placeholder="如：海螺P.O42.5、800x800等"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#1e3a5f] focus:ring-4 focus:ring-[#1e3a5f]/10 outline-none transition-all"
+            />
           </div>
 
           <div className="grid grid-cols-3 gap-4">
